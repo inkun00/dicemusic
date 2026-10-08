@@ -12,6 +12,10 @@
 
 GitHub 저장소: [inkun00/dicemusic](https://github.com/inkun00/dicemusic)
 
+공개 앱: [주사위로 노래 만들기](https://dicemusic-seven.vercel.app)
+
+현재 운영 배포는 Vercel CLI로 완료했습니다. GitHub 커밋 자동 배포는 Vercel 계정에 GitHub 로그인 연결을 추가한 뒤 저장소를 연결해야 활성화됩니다.
+
 `npm run build`는 최신 코드로 단일 HTML 파일을 다시 만들고 웹 배포용 `dist/`를 생성합니다. 배포 폴더에는 앱 실행 파일, 필요한 이미지·라이브러리와 라이선스, 오프라인 다운로드용 `주사위작곡.html`만 포함됩니다. 검증용 `output/`, 원본 `reference/`, 테스트와 개발 스크립트는 웹에 공개되지 않습니다.
 
 Vercel에서 위 GitHub 저장소를 가져오면 `vercel.json`의 정적 사이트 설정이 적용됩니다. 빌드 명령은 `npm run build`, 출력 폴더는 `dist`입니다. 서버나 별도 환경변수는 필요 없습니다. 이후 연결된 브랜치에 변경을 푸시하면 Vercel이 다시 배포합니다.

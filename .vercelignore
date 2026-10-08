@@ -1,0 +1,13 @@
+.git/
+.vercel/
+node_modules/
+dist/
+output/
+reference/
+tests/
+scripts/
+*.log
+assets/*prompts.json
+vendor/bravura-source.otf
+vendor/bravura-provenance.json
+vendor/lame*
