@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f0e5">
+  <meta name="description" content="주사위로 만드는 여덟 마디의 작은 노래. 가사를 쓰고 PDF 악보와 가사가 흐르는 MP4 음악 영상을 간직하세요.">
+  <title>주사위로 노래 만들기</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="vendor/jspdf.umd.min.js"></script>
+  <script defer src="js/music.js"></script>
+  <script defer src="vendor/bravura-clef.js"></script>
+  <script defer src="js/notation.js"></script>
+  <script defer src="js/audio.js"></script>
+  <script defer src="js/video.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <div class="site-shell">
+    <header class="site-header">
+      <nav aria-label="메인 메뉴"><a href="#studio" class="nav-link">작곡하기</a></nav>
+      <span class="header-note"><span class="status-dot"></span> A LITTLE CHANCE. A LITTLE MUSIC.</span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy"><p class="eyebrow">AN EXPLORATION IN SOUND · VOL. 01</p><h1 id="hero-title"><span class="sr-only">주사위로 노래 만들기</span><img class="song-title-art" src="assets/song-title.png" alt="" aria-hidden="true" fetchpriority="high"></h1></div>
+        <div class="hero-art"><img src="assets/melody-landscape.png" alt="민트빛 언덕과 산호빛 바위 사이로 흐르는 오선지와 공중에 떠 있는 주사위" fetchpriority="high"></div>
+        <span class="hero-number" aria-hidden="true">01 / ∞</span>
+      </section>
+
+      <section id="studio" class="studio" aria-labelledby="studio-title">
+        <div class="section-heading"><h2 id="studio-title">주사위를 굴려서 가락을 만들어보세요</h2></div>
+        <div class="studio-layout">
+          <aside class="control-panel paper-surface">
+            <div class="panel-label"><span>01</span> 가락의 기분 정하기</div>
+            <fieldset class="meter-fieldset"><legend>박자 <span>TIME SIGNATURE</span></legend><div class="meter-options" id="meter-options"><button data-meter="2/4" aria-pressed="false">2/4<small>가볍게</small></button><button data-meter="3/4" aria-pressed="false">3/4<small>춤추듯</small></button><button data-meter="4/4" aria-pressed="true" class="selected">4/4<small>차분하게</small></button><button data-meter="6/8" aria-pressed="false">6/8<small>흐르듯</small></button></div></fieldset>
+            <label class="field-label" for="instrument">음색 <span>INSTRUMENT</span></label><div class="select-wrap"><select id="instrument"><option value="musicbox">크리스탈 뮤직박스</option><option value="piano">따뜻한 피아노</option><option value="marimba">나무 마림바</option><option value="strings">부드러운 스트링</option></select><span aria-hidden="true">⌄</span></div>
+            <div class="tempo-heading"><label class="field-label" for="tempo">빠르기 <span>TEMPO</span></label><output id="tempo-value" for="tempo">105 <small>BPM</small></output></div><input type="range" id="tempo" min="50" max="180" value="105"><div class="range-caption"><span>느긋하게</span><span id="tempo-unit">♩ = 105</span><span>경쾌하게</span></div>
+            <div class="control-divider"></div>
+            <div class="dice-console"><button class="dice" id="dice" aria-label="주사위 굴려 선택한 마디 만들기"><svg viewBox="0 0 80 80" aria-hidden="true"><rect x="5" y="5" width="70" height="70" rx="17"/><g id="dice-pips"></g></svg></button><div><span class="eyebrow">NEXT LITTLE CHANCE</span><p><strong id="selected-bar">1</strong>번째 마디</p><span id="selected-chord" class="chord-caption">으뜸화음 · I</span></div></div>
+            <button class="button primary coral-surface" id="roll-button"><span aria-hidden="true">⚄</span> 주사위 굴리기 <span aria-hidden="true">↗</span></button><button class="button secondary" id="auto-button"><span aria-hidden="true">✧</span> 여덟 마디 새로 만들기</button>
+          </aside>
+
+          <div class="composition-panel">
+            <div class="score-heading"><div class="panel-label"><span>02</span> 여덟 마디의 작은 여행</div><button class="text-button muted" id="clear-button">처음부터 <span aria-hidden="true">↺</span></button></div>
+            <div class="composition-meta"><p>마디를 골라 새로운 가락을 만나보세요.</p><span id="completion" class="completion">8 / 8 마디</span></div>
+            <div class="bar-grid" id="bar-grid" aria-label="8마디 악보 타임라인"></div>
+            <div class="player sage-surface"><button class="play-button" id="play-button" aria-label="전체 곡 재생"><span id="play-icon" aria-hidden="true">▶</span></button><div class="player-info"><strong id="player-label">당신의 가락을 들어보세요</strong><div class="play-track"><span id="play-progress"></span></div></div><span class="player-time" id="player-time">00:00 / 00:18</span><button id="stop-button" class="stop-button" aria-label="재생 정지">■</button><div class="volume"><span aria-hidden="true">♪</span><input id="volume" aria-label="재생 음량" type="range" min="0" max="100" value="65"></div></div>
+            <div class="studio-footnote"><span>Ⅰ — Ⅳ — Ⅰ — Ⅴ — Ⅰ — Ⅳ — Ⅴ — Ⅰ</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="finish-strip paper-surface" aria-labelledby="finish-title"><div class="finish-copy"><img class="lyric-writing-art" src="assets/lyric-writing.png" alt="악보의 음표 아래에 연필로 가사를 쓰는 모습"><div><p class="eyebrow">MAKE IT YOURS</p><h2 id="finish-title">가락에 당신의 이야기를 더해요.</h2></div></div><div class="finish-actions"><button class="button primary sage-surface" id="song-button"><span aria-hidden="true">♫</span> 노래 만들기 <span aria-hidden="true">↗</span></button><button class="button secondary" id="music-file-button"><span aria-hidden="true">↓</span> 음악 파일 만들기 <small>MP4</small></button><a class="button secondary" id="share-song-button" href="https://samboard.vivasam.com/studentEntry/?brdId=brd-0RVVMD87JQDM6" target="_blank" rel="noopener noreferrer">노래 알리기 <span aria-hidden="true">↗</span></a></div></section>
+    </main>
+  </div>
+
+  <dialog id="song-dialog" class="song-dialog"><div class="dialog-top"><div><p class="eyebrow">WORDS MEET MELODY</p><h2>작곡한 가락에 가사를 적어보세요</h2></div><button class="close-button" data-close="song-dialog" aria-label="가사 편집 닫기">✕</button></div><div class="song-meta"><span id="song-meter"></span><span id="lyric-count"></span><button class="text-button" id="lyric-preview">▶ 가락 듣기</button></div><div id="lyric-score" class="lyric-score"></div><div class="dialog-bottom"><button class="button primary sage-surface" id="make-score">악보 만들기 <span aria-hidden="true">↗</span></button></div></dialog>
+  <dialog id="metadata-dialog" class="small-dialog"><form id="metadata-form"><div class="dialog-top"><div><p class="eyebrow">A NAME FOR YOUR SONG</p><h2>노래의 이름을 지어주세요.</h2></div><button type="button" class="close-button" data-close="metadata-dialog" aria-label="제목 입력 닫기">✕</button></div><label class="form-label" for="song-title">제목</label><input id="song-title" maxlength="40" placeholder="예: 바람이 건네준 멜로디" required><label class="form-label" for="composer">작곡가</label><input id="composer" maxlength="30" placeholder="작곡가 이름" required><p class="form-note">제목, 작곡가, 가사를 담은 A4 악보 PDF를 만들어요.</p><button type="submit" class="button primary coral-surface" id="pdf-button">PDF 악보 저장하기 <span aria-hidden="true">↓</span></button><p id="pdf-status" class="form-status" role="status"></p></form></dialog>
+  <dialog id="export-dialog" class="small-dialog" aria-labelledby="export-heading"><div class="dialog-top"><div><p class="eyebrow">MELODY IN MOTION</p><h2 id="export-heading">음악 영상을 만들고 있어요.</h2></div></div><p id="export-status" class="form-note" role="status" aria-live="polite">검은 화면에 흰색 가사와 음악을 담고 있어요.</p><progress id="export-progress" max="100" value="0" aria-label="음악 영상 제작 진행률"></progress><button id="export-cancel" class="button secondary">제작 취소</button></dialog>
+  <dialog id="video-dialog" class="small-dialog video-dialog" aria-labelledby="video-heading"><div class="dialog-top"><div><p class="eyebrow">KEEP YOUR SONG</p><h2 id="video-heading">가사가 흐르는 음악 영상이 완성됐어요.</h2></div><button class="close-button" data-close="video-dialog" aria-label="음악 영상 창 닫기">✕</button></div><p id="video-summary" class="form-note"></p><video id="exported-video" controls playsinline preload="metadata" aria-label="완성된 음악 영상 미리보기"></video><a id="video-download" class="button primary sage-surface" download="나의-노래.mp4">MP4 저장하기 <span aria-hidden="true">↓</span></a><p class="form-note">검은 화면에 흰색 가사가 음악에 맞춰 나타나요.</p></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p>이 작업실을 사용하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
+</body>
+</html>

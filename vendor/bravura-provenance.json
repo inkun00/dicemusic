@@ -1,0 +1,38 @@
+{
+  "width": 671,
+  "height": 1756,
+  "originX": 0,
+  "originY": 1098,
+  "staffSpace": 250.0,
+  "bounds": [
+    0,
+    -658,
+    671,
+    1098
+  ],
+  "glyph": "gClef",
+  "codepoint": "U+E050",
+  "fontVersion": "Version 1.482",
+  "sourceCommit": "37b194378b710cc40e406ab6c4b07608bb9548ae",
+  "source": "https://raw.githubusercontent.com/steinbergmedia/bravura/37b194378b710cc40e406ab6c4b07608bb9548ae/redist/otf/Bravura.otf",
+  "repository": "https://github.com/steinbergmedia/bravura",
+  "license": "SIL Open Font License 1.1",
+  "sourceSha256": "cdf0f893ee1fdb64b7f6713d71ee0dcfc349c0ac01429a8e451b01a9e79f5f3b",
+  "unitsPerEm": 1000,
+  "officialMetadataStaffSpaces": {
+    "bBoxNE": [
+      2.684,
+      4.392
+    ],
+    "bBoxSW": [
+      0,
+      -2.632
+    ]
+  },
+  "transform": "SVG x = font x - xMin; SVG y = yMax - font y",
+  "alignment": "Place SVG origin (originX, originY) on G4, the second staff line from bottom. Scale by staffGap / staffSpace.",
+  "extraction": "fontTools SVGPathPen, with unmodified original cubic Bezier outline",
+  "licenseFile": "vendor/bravura-LICENSE.txt",
+  "svgFile": "assets/treble-clef.svg",
+  "browserAsset": "vendor/bravura-clef.js"
+}

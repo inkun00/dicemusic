@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주사위 음악 작곡가 (Dice Music Composer)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', 'Gowun Batang', serif;
+            background-color: #FDFBF7; /* 고풍스러운 한지/파스텔 크림톤 */
+        }
+        
+        /* 주사위 롤링 애니메이션 */
+        @keyframes dice-roll-spin {
+            0% { transform: rotate(0deg) scale(1) translateY(0); }
+            25% { transform: rotate(180deg) scale(1.15) translateY(-10px); }
+            50% { transform: rotate(360deg) scale(1.25) translateY(-15px); }
+            75% { transform: rotate(540deg) scale(1.15) translateY(-5px); }
+            100% { transform: rotate(720deg) scale(1) translateY(0); }
+        }
+        .rolling-active {
+            animation: dice-roll-spin 0.75s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+
+        /* 미세 터치/호버 부드러운 스케일링 */
+        .interactive-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .interactive-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-12 min-h-screen">
+
+    <!-- 첫 로드 오디오 사용자동의 모달 오버레이 (브라우저 보안 가드) -->
+    <div id="intro-modal" class="fixed inset-0 bg-amber-950/90 z-50 flex items-center justify-center p-4 transition-opacity duration-500">
+        <div class="bg-white max-w-md w-full p-8 rounded-3xl shadow-2xl border border-amber-100 flex flex-col items-center text-center">
+            <div class="text-6xl mb-4 select-none animate-bounce">🎲✨</div>
+            <h1 class="text-3xl font-bold text-amber-900 mb-2" style="font-family: 'Gowun Batang';">주사위 음악 작곡가</h1>
+            <p class="text-sm text-slate-500 leading-relaxed mb-6">
+                주사위를 굴려 무작위로 선택되는 아름다운 화음 마디들을 조합하여, 단 하나뿐인 우연의 클래식 음악을 탄생시키는 인터랙티브 웹앱입니다.
+            </p>
+            <button onclick="initializeComposer()" class="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-amber-700/20 transition-all duration-300 transform active:scale-95 text-lg">
+                작곡 연주 준비하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 메인 앱 영역 -->
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        
+        <!-- 헤더 및 소개부 -->
+        <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-amber-100/80">
+            <div>
+                <h1 class="text-3xl font-extrabold text-amber-900 tracking-tight flex items-center gap-2" style="font-family: 'Gowun Batang';">
+                    <span>🎲</span> 주사위 음악 작곡가
+                </h1>
+                <p class="text-xs text-amber-800/80 mt-1">주사위를 굴리면 18가지 악보 조각 중 해당 눈금의 <strong class="text-amber-950 font-bold">화음 순서(image_88759b.png 규칙)에 맞춰 곡이 매핑</strong>되어 정밀 연결됩니다.</p>
+            </div>
+            
+            <!-- 악기 테마 및 상태 제어 -->
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="bg-amber-100/50 border border-amber-200/80 px-3.5 py-1.5 rounded-2xl flex items-center gap-2">
+                    <span class="text-xs font-bold text-amber-800">🎻 음색 테마:</span>
+                    <select id="sound-theme" onchange="changeSoundTheme()" class="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer">
+                        <optgroup label="클래식 및 어쿠스틱">
+                            <option value="musicbox">🔮 크리스탈 뮤직 박스</option>
+                            <option value="cozypiano">🪵 따뜻한 살롱 피아노</option>
+                            <option value="marimba">🪵 내추럴 마림바/실로폰</option>
+                            <option value="guitar">🎸 클래식 나일론 기타</option>
+                            <option value="organ">💒 성당 파이프 오르간</option>
+                        </optgroup>
+                        <optgroup label="신디사이저 및 레트로">
+                            <option value="strings">🎻 따뜻한 스트링 오케스트라</option>
+                            <option value="synthbrass">🎺 80년대 레트로 브라스 신스</option>
+                            <option value="crystalbell">🔔 영롱한 풍경 실로폰</option>
+                            <option value="retroarcade">👾 8비트 감성 레트로</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- 핵심 배치: 좌측(악보 일람 참조표) / 우측(컨트롤러) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- 왼쪽: 주사위 악보 참조판 (6X3 테이블) -->
+            <section class="lg:col-span-7 bg-white p-5 rounded-3xl shadow-sm border border-amber-100/70">
+                <div class="flex items-center justify-between mb-3.5">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-1.5" style="font-family: 'Gowun Batang';">
+                        <span>📊</span> 주사위 대응 악보 참조표 (cd4e0830-c144-4b03-bf6d-a4bb7298d6c3.jpg 완벽 매핑)
+                    </h2>
+                    <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">셀 클릭 시 타임라인에 즉시 삽입</span>
+                </div>
+
+                <!-- 격자판 마이크로 악보 테이블 -->
+                <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                    <table class="w-full text-center border-collapse">
+                        <thead>
+                            <tr class="bg-amber-50/50 border-b border-amber-100/60 text-xs font-bold text-amber-900">
+                                <th class="py-3 px-2">눈금</th>
+                                <th class="py-3 px-2">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center font-extrabold text-[9px]">I</span>
+                                        으뜸화음 (Tonic)
+                                    </span>
+                                </th>
+                                <th class="py-3 px-2">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center font-extrabold text-[9px]">IV</span>
+                                        버금딸림화음 (Sub)
+                                    </span>
+                                </th>
+                                <th class="py-3 px-2">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center font-extrabold text-[9px]">V</span>
+                                        딸림화음 (Dominant)
+                                    </span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="matrix-body" class="divide-y divide-slate-100">
+                            <!-- JS를 통해 18가지 악보 조각이 동적으로 주입됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 오른쪽: 주사위 조종석 및 통합 사운드 제어판 -->
+            <section class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- 주사위 롤러 인터페이스 -->
+                <div class="bg-gradient-to-b from-amber-50/70 to-orange-50/30 p-6 rounded-3xl border border-amber-100 flex flex-col items-center shadow-sm">
+                    <h3 class="text-xs font-bold text-amber-800 tracking-wider uppercase mb-2">Composition Dashboard</h3>
+                    
+                    <!-- 주사위 비주얼 롤러 파트 -->
+                    <div class="my-3 flex items-center justify-center gap-5">
+                        <div id="dice-element" class="w-20 h-20 bg-white rounded-2xl shadow-md border border-amber-200/60 flex items-center justify-center p-1.5 transition-transform duration-200 select-none">
+                            <!-- 주사위 얼굴 이미지 SVG -->
+                        </div>
+                        <div class="flex flex-col text-left">
+                            <span class="text-[10px] text-amber-800/80 font-bold uppercase">현재 작곡 대상 슬롯</span>
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span id="current-slot-indicator" class="text-base font-extrabold text-amber-900 bg-amber-200/50 px-2.5 py-1 rounded-xl border border-amber-300/40">1마디</span>
+                                <span class="text-[10px] text-slate-400 font-medium">로 지정됨</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 주사위 작곡 컨트롤 버튼 -->
+                    <div class="w-full grid grid-cols-2 gap-3 mt-3">
+                        <button onclick="throwDice()" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3 px-4 rounded-2xl transition-all duration-300 shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transform active:scale-95">
+                            <span>🎲</span> 주사위 굴리기
+                        </button>
+                        <button onclick="runAutoComposition()" class="bg-white hover:bg-amber-50 text-amber-800 font-bold py-3 px-4 rounded-2xl transition-all duration-300 border border-amber-200 shadow-sm flex items-center justify-center gap-1.5 transform active:scale-95">
+                            <span>🪄</span> 자동 완곡 채우기
+                        </button>
+                    </div>
+
+                    <!-- 작동 로그 한 줄 피드백 -->
+                    <div id="operation-log" class="w-full mt-4 bg-white/80 border border-amber-100/50 rounded-xl px-3 py-2.5 text-[11px] text-amber-900 text-center min-h-[44px] flex items-center justify-center">
+                        주사위를 굴리면 정해진 화음 순서(image_88759b.png 진행)대로 작곡을 조립합니다!
+                    </div>
+                </div>
+
+                <!-- 전체 연주 및 재생 속도 컨트롤러 -->
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-amber-100/70">
+                    <h3 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1" style="font-family: 'Gowun Batang';">
+                        <span>🎚️</span> 연주 컨트롤 & 템포 조절
+                    </h3>
+                    
+                    <!-- 플레이 단추 레이아웃 -->
+                    <div class="flex items-center gap-2 mb-4">
+                        <button id="song-play-btn" onclick="toggleFullSongPlay()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-slate-800/10">
+                            <span id="play-btn-symbol">▶</span> <span id="play-btn-text">전체 곡 재생</span>
+                        </button>
+                        <button onclick="stopSongPlay()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-4 rounded-xl transition-all border border-slate-200">
+                            ■ 정지
+                        </button>
+                        <button onclick="resetFullComposition()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-3 px-4 rounded-xl transition-all border border-rose-200">
+                            ↺ 초기화
+                        </button>
+                    </div>
+
+                    <!-- 템포 슬라이더 -->
+                    <div class="pt-1.5">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[11px] font-bold text-slate-500">연주 템포 (BPM)</span>
+                            <span id="bpm-indicator" class="text-xs font-extrabold text-amber-800">105 BPM</span>
+                        </div>
+                        <input id="bpm-slider" type="range" min="60" max="180" value="105" oninput="handleBpmChange(this.value)" class="w-full accent-amber-600 cursor-pointer h-1.5 bg-slate-100 rounded-lg">
+                        <div class="flex justify-between text-[9px] text-slate-400 mt-1 font-medium">
+                            <span>Lento (60)</span>
+                            <span>Andante (105)</span>
+                            <span>Presto (180)</span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+
+        <!-- 하단 섹션: 8마디 타임라인 (작곡 결과 전광판) -->
+        <section class="mt-6 bg-white p-5 rounded-3xl shadow-sm border border-amber-100/70">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-1.5" style="font-family: 'Gowun Batang';">
+                        <span>🎼</span> 8마디 악곡 조립 타임라인 (image_88759b.png 진행 적용)
+                    </h2>
+                    <p class="text-[11px] text-slate-400 mt-0.5">각 슬롯의 요구 화음 조건에 맞는 악보 조각이 점진적 또는 수동으로 채워집니다.</p>
+                </div>
+                <!-- 완성 점수 배지 -->
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] font-bold text-slate-400">완성 마디:</span>
+                    <span id="completion-badge" class="text-xs font-extrabold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">0 / 8 마디</span>
+                </div>
+            </div>
+
+            <!-- 8마디 카드 격자 레이아웃 -->
+            <div id="timeline-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                <!-- JS를 통해 8개의 마디 슬롯이 그려집니다 -->
+            </div>
+        </section>
+
+    </div>
+
+    <!-- 오디오 알림 미니 토스트 -->
+    <div id="app-toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs font-semibold px-4.5 py-2.5 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+        여기에 시스템 알림이 표시됩니다.
+    </div>
+
+    <script>
+        // --- 1. 정밀 음계 및 18가지 멜로디 조각 데이터 명세 ---
+        const PITCH_HZ = {
+            'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00,
+            'A4': 440.00, 'B4': 493.88, 'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46
+        };
+
+        // 오선지 내에서 정확한 높이 Y축 표현용 오프셋 매핑 (B4를 중앙 0으로 정교하게 매핑)
+        const PITCH_STEP_FROM_B4 = {
+            'F5': 4, 'E5': 3, 'D5': 2, 'C5': 1, 'B4': 0, 'A4': -1, 'G4': -2, 'F4': -3, 'E4': -4, 'D4': -5, 'C4': -6, 'REST': 0
+        };
+
+        // 이미지 속 18가지 멜로디 조각을 완벽히 데이터 기호화 (dur: 1.0 = 4분음표, 0.5 = 8분음표, 2.0 = 2분음표, 1.5 = 점4분음표)
+        const MASTER_MEASURES_DATA = {
+            1: {
+                I: [
+                    { pitch: 'C4', dur: 1.0 },
+                    { pitch: 'E4', dur: 1.0 },
+                    { pitch: 'G4', dur: 1.0 },
+                    { pitch: 'E4', dur: 1.0 }
+                ],
+                IV: [
+                    { pitch: 'F4', dur: 1.0 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'C5', dur: 1.0 },
+                    { pitch: 'A4', dur: 1.0 }
+                ],
+                V: [
+                    { pitch: 'G4', dur: 1.0 },
+                    { pitch: 'G4', dur: 1.0 },
+                    { pitch: 'B4', dur: 0.5 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'G4', dur: 1.0 }
+                ]
+            },
+            2: {
+                I: [
+                    { pitch: 'E4', dur: 1.0 },
+                    { pitch: 'E4', dur: 1.0 },
+                    { pitch: 'G4', dur: 1.0 },
+                    { pitch: 'E4', dur: 1.0 }
+                ],
+                IV: [
+                    { pitch: 'F4', dur: 0.5 },
+                    { pitch: 'F4', dur: 0.5 },
+                    { pitch: 'F4', dur: 0.5 },
+                    { pitch: 'F4', dur: 0.5 },
+                    { pitch: 'A4', dur: 1.0 },
+                    { pitch: 'F4', dur: 1.0 }
+                ],
+                V: [
+                    { pitch: 'G4', dur: 0.5 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'B4', dur: 0.5 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'G4', dur: 2.0 }
+                ]
+            },
+            3: {
+                I: [
+                    { pitch: 'C4', dur: 1.0 },
+                    { pitch: 'E4', dur: 0.5 }, // 첫 번째 '미' (0.5박)
+                    { pitch: 'E4', dur: 0.5 }, // 두 번째 '미'를 '미 미'(0.5, 0.5)로 변경완료!
+                    { pitch: 'E4', dur: 0.5 }, // 세 번째 '미' (0.5박)
+                    { pitch: 'G4', dur: 0.5 }, // 솔 (0.5박)
+                    { pitch: 'F4', dur: 0.5 }, // 파 (0.5박)
+                    { pitch: 'E4', dur: 0.5 }  // 마지막 미 (0.5박) -> 총 4.0박 완벽 동기화
+                ],
+                IV: [
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'F4', dur: 0.5 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'F4', dur: 0.5 },
+                    { pitch: 'C4', dur: 1.0 }, // 낮은 도 피드백 완벽 적용
+                    { pitch: 'REST', dur: 1.0 }
+                ],
+                V: [
+                    { pitch: 'D4', dur: 1.0 }, // 낮은 레 반영 완료
+                    { pitch: 'REST', dur: 1.0 },
+                    { pitch: 'G4', dur: 1.0 },
+                    { pitch: 'REST', dur: 1.0 }
+                ]
+            },
+            4: {
+                I: [
+                    { pitch: 'E4', dur: 0.5 },
+                    { pitch: 'D4', dur: 0.5 },
+                    { pitch: 'E4', dur: 0.5 },
+                    { pitch: 'D4', dur: 0.5 },
+                    { pitch: 'E4', dur: 1.0 },
+                    { pitch: 'C4', dur: 1.0 }
+                ],
+                IV: [
+                    { pitch: 'C5', dur: 1.0 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'F4', dur: 0.5 },
+                    { pitch: 'C5', dur: 1.0 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'F4', dur: 0.5 }
+                ],
+                V: [
+                    { pitch: 'G4', dur: 0.5 },
+                    { pitch: 'A4', dur: 0.5 },
+                    { pitch: 'B4', dur: 0.5 },
+                    { pitch: 'C5', dur: 0.5 },
+                    { pitch: 'D5', dur: 1.0 },
+                    { pitch: 'G4', dur: 1.0 }
+                ]
+            },
+            5: {
+                I: [
+                    { pitch: 'C5', dur: 2.0 }, // 높은도 높은도 높은도 솔 미 완벽 매핑
+                    { pitch: 'C5', dur: 0.5 },
+                    { pitch: 'C5', dur: 0.5 },
+                    { pitch: 'G4', dur: 0.5 },
+                    { pitch: 'E4', dur: 0.5 }
+                ],
+                IV: [
+                    { pitch: 'C4', dur: 2.0 },
+                    { pitch: 'A4', dur: 1.0 },
+                    { pitch: 'F4', dur: 1.0 }
+                ],
+                V: [
+                    { pitch: 'G4', dur: 0.5 },
+                    { pitch: 'G4', dur: 0.5 },
+                    { pitch: 'G4', dur: 0.5 },
+                    { pitch: 'G4', dur: 0.5 },
+                    { pitch: 'D4', dur: 2.0 } // 낮은레 종지형 완벽 튜닝
+                ]
+            },
+            6: {
+                I: [
+                    { pitch: 'E4', dur: 2.0 },
+                    { pitch: 'G4', dur: 2.0 }
+                ],
+                IV: [
+                    { pitch: 'A4', dur: 2.0 },
+                    { pitch: 'F4', dur: 2.0 }
+                ],
+                V: [
+                    { pitch: 'B4', dur: 2.0 },
+                    { pitch: 'G4', dur: 2.0 }
+                ]
+            }
+        };
+
+        // --- 1.2 두 번째 이미지(image_88759b.png) 화음 진행 명세 ---
+        const FLOW_CHORDS = ['I', 'IV', 'I', 'V', 'I', 'IV', 'V', 'I'];
+
+        // --- 2. 오디오 핵심 합성부 엔진 및 채널 구현 ---
+        let audioContext = null;
+        let masterGainNode = null;
+        let activeTheme = 'musicbox';
+        let activeAudioSources = []; // 현재 연주 중 또는 예약된 오디오 소스 추적용 배열
+
+        function initializeAudioSystem() {
+            if (audioContext) return;
+            
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AudioContextClass();
+            
+            masterGainNode = audioContext.createGain();
+            masterGainNode.gain.setValueAtTime(0.60, audioContext.currentTime); // 과도한 클리핑 방지 마스터 볼륨 조정
+            masterGainNode.connect(audioContext.destination);
+        }
+
+        // 연주 중이거나 예약된 모든 소스 실시간 즉시 강제 정지
+        function stopAllActiveAudio() {
+            activeAudioSources.forEach(src => {
+                src.oscs.forEach(osc => {
+                    try {
+                        osc.stop();
+                    } catch (e) {}
+                    try {
+                        osc.disconnect();
+                    } catch (e) {}
+                });
+                try {
+                    src.gain.disconnect();
+                } catch (e) {}
+            });
+            activeAudioSources = [];
+        }
+
+        // 악기 테마 변경 제어
+        function changeSoundTheme() {
+            activeTheme = document.getElementById('sound-theme').value;
+            triggerSystemToast("악기 음색 테마가 변경되었습니다.");
+        }
+
+        // --- 3. 오디오 연주 합성 핵심 메서드 (샘플급 정확도의 하드웨어 ADSR 설계) ---
+        function playNoteSynthesizer(freq, startTime, duration) {
+            if (!audioContext) initializeAudioSystem();
+            if (audioContext.state === 'suspended') audioContext.resume();
+
+            const noteEnvelope = audioContext.createGain();
+            const lowpassFilter = audioContext.createBiquadFilter();
+            const oscs = [];
+
+            // 기본 오디오 체인 연결
+            noteEnvelope.connect(masterGainNode);
+            lowpassFilter.connect(noteEnvelope);
+
+            const attackTime = 0.012; // 12ms 미세 어택 설계로 '틱' 노이즈 제거
+            let releaseTime = 0.04;  // 기본 40ms 릴리즈
+            
+            // 정확한 타임라인 스타트 지점에 볼륨 0 초기화
+            noteEnvelope.gain.setValueAtTime(0, startTime);
+
+            // 가변 악기 합성 패널 스위칭
+            if (activeTheme === 'musicbox') {
+                const osc1 = audioContext.createOscillator();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(freq, startTime);
+                osc1.connect(lowpassFilter);
+                oscs.push(osc1);
+
+                const osc2 = audioContext.createOscillator();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(freq * 2, startTime);
+                osc2.connect(lowpassFilter);
+                oscs.push(osc2);
+
+                lowpassFilter.type = 'lowpass';
+                lowpassFilter.frequency.setValueAtTime(1800, startTime);
+
+                noteEnvelope.gain.linearRampToValueAtTime(0.24, startTime + attackTime);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            } 
+            else if (activeTheme === 'cozypiano') {
+                const osc1 = audioContext.createOscillator();
+                osc1.type = 'triangle';
+                osc1.frequency.setValueAtTime(freq, startTime);
+                osc1.connect(lowpassFilter);
+                oscs.push(osc1);
+
+                const osc2 = audioContext.createOscillator();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(freq, startTime);
+                osc2.connect(lowpassFilter);
+                oscs.push(osc2);
+
+                lowpassFilter.type = 'lowpass';
+                lowpassFilter.frequency.setValueAtTime(900, startTime);
+                lowpassFilter.frequency.exponentialRampToValueAtTime(120, startTime + duration);
+
+                noteEnvelope.gain.linearRampToValueAtTime(0.28, startTime + attackTime);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            } 
+            else if (activeTheme === 'marimba') { // 🪵 나무 마림바 합성
+                const osc1 = audioContext.createOscillator();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(freq, startTime);
+                osc1.connect(lowpassFilter);
+                oscs.push(osc1);
+
+                const osc2 = audioContext.createOscillator();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(freq * 3.0, startTime); // 목재 마찰 배음
+                osc2.connect(lowpassFilter);
+                oscs.push(osc2);
+
+                lowpassFilter.type = 'lowpass';
+                lowpassFilter.frequency.setValueAtTime(2200, startTime);
+
+                const marimbaAttack = 0.004;
+                const marimbaDecay = 0.16;
+                noteEnvelope.gain.linearRampToValueAtTime(0.30, startTime + marimbaAttack);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, marimbaDecay));
+                releaseTime = 0.02;
+            }
+            else if (activeTheme === 'guitar') { // 🎸 클래식 나일론 기타 줄 튕김 합성
+                const osc1 = audioContext.createOscillator();
+                osc1.type = 'triangle';
+                osc1.frequency.setValueAtTime(freq, startTime);
+                osc1.connect(lowpassFilter);
+                oscs.push(osc1);
+
+                const osc2 = audioContext.createOscillator();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(freq * 2, startTime);
+                osc2.connect(lowpassFilter);
+                oscs.push(osc2);
+
+                lowpassFilter.type = 'lowpass';
+                lowpassFilter.frequency.setValueAtTime(2000, startTime);
+                lowpassFilter.frequency.exponentialRampToValueAtTime(160, startTime + duration);
+
+                const guitarAttack = 0.008;
+                noteEnvelope.gain.linearRampToValueAtTime(0.25, startTime + guitarAttack);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                releaseTime = 0.08;
+            }
+            else if (activeTheme === 'organ') { // 💒 성당 오르간 다중 하모닉 멀티 보이스
+                const organDrawbars = [1, 2, 3, 4];
+                const organGains = [0.12, 0.08, 0.05, 0.03];
+                
+                organDrawbars.forEach((mult, idx) => {
+                    const osc = audioContext.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq * mult, startTime);
+                    
+                    const subGain = audioContext.createGain();
+                    subGain.gain.setValueAtTime(organGains[idx], startTime);
+                    
+                    osc.connect(subGain);
+                    subGain.connect(lowpassFilter);
+                    oscs.push(osc);
+                });
+
+                lowpassFilter.type = 'lowpass';
+                lowpassFilter.frequency.setValueAtTime(2800, startTime);
+
+                noteEnvelope.gain.linearRampToValueAtTime(0.26, startTime + 0.02);
+                noteEnvelope.gain.setValueAtTime(0.21, startTime + duration - 0.02);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                releaseTime = 0.05;
+            }
+            else if (activeTheme === 'strings') { // 🎻 현악 앙상블 미세 디튠
+                const choirDetunes = [-14, -5, 5, 14];
+                const stringsVolumeMult = 0.06;
+                
+                choirDetunes.forEach(detuneValue => {
+                    const osc = audioContext.createOscillator();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, startTime);
+                    osc.detune.setValueAtTime(detuneValue, startTime);
+                    
+                    const subGain = audioContext.createGain();
+                    subGain.gain.setValueAtTime(stringsVolumeMult, startTime);
+                    
+                    osc.connect(subGain);
+                    subGain.connect(lowpassFilter);
+                    oscs.push(osc);
+                });
+
+                lowpassFilter.type = 'lowpass';
+                lowpassFilter.frequency.setValueAtTime(1100, startTime);
+
+                const stringAttack = 0.08;
+                noteEnvelope.gain.linearRampToValueAtTime(0.25, startTime + stringAttack);
+                noteEnvelope.gain.setValueAtTime(0.20, startTime + duration - 0.02);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                releaseTime = 0.15;
+            }
+            else if (activeTheme === 'synthbrass') { // 🎺 80년대 복고 브라스 필터 왱 스윕
+                const osc1 = audioContext.createOscillator();
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(freq, startTime);
+                osc1.connect(lowpassFilter);
+                oscs.push(osc1);
+
+                const osc2 = audioContext.createOscillator();
+                osc2.type = 'sawtooth';
+                osc2.frequency.setValueAtTime(freq * 1.004, startTime);
+                osc2.detune.setValueAtTime(12, startTime);
+                osc2.connect(lowpassFilter);
+                oscs.push(osc2);
+
+                lowpassFilter.type = 'lowpass';
+                lowpassFilter.frequency.setValueAtTime(4500, startTime);
+                lowpassFilter.frequency.exponentialRampToValueAtTime(850, startTime + 0.16);
+
+                const brassAttack = 0.035;
+                noteEnvelope.gain.linearRampToValueAtTime(0.18, startTime + brassAttack);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                releaseTime = 0.06;
+            }
+            else if (activeTheme === 'crystalbell') {
+                const osc1 = audioContext.createOscillator();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(freq, startTime);
+                osc1.connect(lowpassFilter);
+                oscs.push(osc1);
+
+                const osc2 = audioContext.createOscillator();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(freq * 3, startTime);
+                osc2.connect(lowpassFilter);
+                oscs.push(osc2);
+
+                lowpassFilter.type = 'bandpass';
+                lowpassFilter.frequency.setValueAtTime(1400, startTime);
+                lowpassFilter.frequency.exponentialRampToValueAtTime(400, startTime + duration);
+
+                noteEnvelope.gain.linearRampToValueAtTime(0.16, startTime + attackTime);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            } 
+            else if (activeTheme === 'retroarcade') {
+                const osc1 = audioContext.createOscillator();
+                osc1.type = 'square';
+                osc1.frequency.setValueAtTime(freq, startTime);
+                osc1.connect(lowpassFilter);
+                oscs.push(osc1);
+
+                const osc2 = audioContext.createOscillator();
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(freq * 0.5, startTime);
+                osc2.connect(lowpassFilter);
+                oscs.push(osc2);
+
+                lowpassFilter.type = 'lowpass';
+                lowpassFilter.frequency.setValueAtTime(800, startTime);
+
+                noteEnvelope.gain.linearRampToValueAtTime(0.10, startTime + attackTime);
+                noteEnvelope.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            }
+
+            oscs.forEach(osc => {
+                osc.start(startTime);
+                osc.stop(startTime + duration + releaseTime);
+            });
+
+            const sourceObj = {
+                oscs: oscs,
+                gain: noteEnvelope,
+                stopTime: startTime + duration + releaseTime
+            };
+            activeAudioSources.push(sourceObj);
+        }
+
+        // 물리 주사위 굴리는 둔탁한 타격 소음 연출
+        function playDiceClackEffect() {
+            if (!audioContext) initializeAudioSystem();
+            if (audioContext.state === 'suspended') audioContext.resume();
+            
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(125, audioContext.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(25, audioContext.currentTime + 0.09);
+            
+            gain.gain.setValueAtTime(0.08, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.09);
+            
+            osc.start();
+            osc.stop(audioContext.currentTime + 0.09);
+        }
+
+        // --- 4. 정밀 동적 18가지 음악 조각 SVG 렌더러 (사선 묶음줄-Beam 알고리즘 완벽 적용) ---
+        function renderMeasureSVG(notes, activeNoteIdx = -1, width = 160, height = 75) {
+            let svg = `<svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" class="overflow-visible select-none">`;
+            
+            const centerY = height / 2;
+            const stepY = 6; // 5줄 간격 설정
+            const staffStartTop = centerY - 2 * stepY;
+            
+            // 1. 회색 5오선 라인 생성
+            for (let i = 0; i < 5; i++) {
+                const lineY = staffStartTop + i * stepY;
+                svg += `<line x1="2" y1="${lineY}" x2="${width - 2}" y2="${lineY}" stroke="#E2E8F0" stroke-width="1.1"/>`;
+            }
+            
+            // 2. 우아한 높은음자리표 (Unicode Treble Clef 매핑)
+            svg += `<text x="4" y="${centerY + 10}" font-family="serif" font-size="28" fill="#475569">𝄞</text>`;
+            
+            // 3. 4/4 박자 지시표 표시
+            svg += `<text x="25" y="${centerY - 3}" font-family="sans-serif" font-size="10" font-weight="bold" fill="#64748B" text-anchor="middle">4</text>`;
+            svg += `<text x="25" y="${centerY + 8}" font-family="sans-serif" font-size="10" font-weight="bold" fill="#64748B" text-anchor="middle">4</text>`;
+            
+            // 4. 개별 음표 렌더링 루프
+            if (notes && notes.length > 0) {
+                const startX = 38;
+                const nodeGap = (width - startX - 12) / notes.length;
+                
+                const renderedNotes = notes.map((note, idx) => {
+                    const cx = startX + idx * nodeGap + nodeGap / 2;
+                    const isNoteActive = idx === activeNoteIdx;
+                    const primaryColor = isNoteActive ? '#F97316' : '#1E293B';
+                    const strokeWidthValue = isNoteActive ? '2.5' : '1.5';
+                    
+                    let cy = centerY;
+                    if (note.pitch !== 'REST') {
+                        cy = centerY - (PITCH_STEP_FROM_B4[note.pitch] * (stepY / 2));
+                    }
+                    
+                    return {
+                        ...note,
+                        idx,
+                        cx,
+                        cy,
+                        primaryColor,
+                        strokeWidthValue
+                    };
+                });
+                
+                // 5. 연속된 8분음표(dur === 0.5) 연쇄 감지 및 묶음줄(Beam) 그룹화
+                const beamGroups = [];
+                let currentGroup = [];
+                
+                renderedNotes.forEach((rn) => {
+                    if (rn.dur === 0.5 && rn.pitch !== 'REST') {
+                        currentGroup.push(rn);
+                    } else {
+                        if (currentGroup.length > 0) {
+                            beamGroups.push(currentGroup);
+                            currentGroup = [];
+                        }
+                    }
+                });
+                if (currentGroup.length > 0) {
+                    beamGroups.push(currentGroup);
+                }
+                
+                // 각 노트를 묶음 그룹 매핑
+                const noteToGroupMap = new Map();
+                beamGroups.forEach((group, gIdx) => {
+                    if (group.length >= 2) {
+                        group.forEach(rn => {
+                            noteToGroupMap.set(rn.idx, { gIdx, group });
+                        });
+                    }
+                });
+                
+                // 실시간 드로잉 렌더링
+                renderedNotes.forEach((rn) => {
+                    if (rn.pitch === 'REST') {
+                        svg += `<path d="M${rn.cx-2.5} ${centerY-6} L${rn.cx+2.5} ${centerY-2} L${rn.cx-2.5} ${centerY+2} Q${rn.cx+4} ${centerY+5} ${rn.cx+1} ${centerY+8}" fill="none" stroke="${rn.primaryColor}" stroke-width="1.8" stroke-linecap="round"/>`;
+                    } else {
+                        // C4 아래 첫째 덧줄 드로잉
+                        if (rn.pitch === 'C4') {
+                            svg += `<line x1="${rn.cx - 7}" y1="${rn.cy}" x2="${rn.cx + 7}" y2="${rn.cy}" stroke="${rn.primaryColor}" stroke-width="1.1"/>`;
+                        }
+                        
+                        const isHollowHead = rn.dur >= 2.0;
+                        if (isHollowHead) {
+                            svg += `<ellipse cx="${rn.cx}" cy="${rn.cy}" rx="4.2" ry="2.9" transform="rotate(-22 ${rn.cx} ${rn.cy})" fill="none" stroke="${rn.primaryColor}" stroke-width="${rn.strokeWidthValue}"/>`;
+                        } else {
+                            svg += `<ellipse cx="${rn.cx}" cy="${rn.cy}" rx="4.2" ry="2.9" transform="rotate(-22 ${rn.cx} ${rn.cy})" fill="${rn.primaryColor}"/>`;
+                        }
+                        
+                        // 음표 기둥(Stem) 연산 및 방향 결정
+                        let stemsUp = rn.cy >= centerY;
+                        const groupInfo = noteToGroupMap.get(rn.idx);
+                        
+                        if (groupInfo) {
+                            const { group } = groupInfo;
+                            const sumY = group.reduce((acc, note) => acc + note.cy, 0);
+                            const avgY = sumY / group.length;
+                            stemsUp = avgY >= centerY;
+                        }
+                        
+                        const stemStartX = stemsUp ? rn.cx + 3.8 : rn.cx - 3.8;
+                        
+                        if (!groupInfo) {
+                            const stemYTarget = stemsUp ? rn.cy - 18 : rn.cy + 18;
+                            svg += `<line x1="${stemStartX}" y1="${rn.cy}" x2="${stemStartX}" y2="${stemYTarget}" stroke="${rn.primaryColor}" stroke-width="1.1" stroke-linecap="round"/>`;
+                            
+                            if (rn.dur <= 0.5) {
+                                if (stemsUp) {
+                                    svg += `<path d="M ${stemStartX} ${stemYTarget} Q ${stemStartX + 4.5} ${stemYTarget + 5} ${stemStartX + 3.5} ${stemYTarget + 12}" fill="none" stroke="${rn.primaryColor}" stroke-width="1.1" stroke-linecap="round"/>`;
+                                } else {
+                                    svg += `<path d="M ${stemStartX} ${stemYTarget} Q ${stemStartX - 4.5} ${stemYTarget - 5} ${stemStartX - 3.5} ${stemYTarget - 12}" fill="none" stroke="${rn.primaryColor}" stroke-width="1.1" stroke-linecap="round"/>`;
+                                }
+                            }
+                        } else {
+                            const { group } = groupInfo;
+                            const firstNote = group[0];
+                            const lastNote = group[group.length - 1];
+                            
+                            const firstStemX = stemsUp ? firstNote.cx + 3.8 : firstNote.cx - 3.8;
+                            const lastStemX = stemsUp ? lastNote.cx + 3.8 : lastNote.cx - 3.8;
+                            
+                            const firstStemYTarget = stemsUp ? firstNote.cy - 18 : firstNote.cy + 18;
+                            const lastStemYTarget = stemsUp ? lastNote.cy - 18 : lastNote.cy + 18;
+                            
+                            let targetStemY = firstStemYTarget;
+                            if (group.length > 1) {
+                                const ratio = (stemStartX - firstStemX) / (lastStemX - firstStemX);
+                                targetStemY = firstStemYTarget + (lastStemYTarget - firstStemYTarget) * ratio;
+                            }
+                            
+                            svg += `<line x1="${stemStartX}" y1="${rn.cy}" x2="${stemStartX}" y2="${targetStemY}" stroke="${rn.primaryColor}" stroke-width="1.1" stroke-linecap="round"/>`;
+                        }
+                        
+                        if (rn.dur === 1.5) {
+                            svg += `<circle cx="${rn.cx + 6.8}" cy="${rn.cy - 1}" r="1.3" fill="${rn.primaryColor}"/>`;
+                        }
+                    }
+                });
+                
+                // 묶음줄(Beam) 가로 기둥 바 일제히 생성
+                beamGroups.forEach((group) => {
+                    if (group.length >= 2) {
+                        const firstNote = group[0];
+                        const lastNote = group[group.length - 1];
+                        
+                        const sumY = group.reduce((acc, note) => acc + note.cy, 0);
+                        const avgY = sumY / group.length;
+                        const stemsUp = avgY >= centerY;
+                        
+                        const firstStemX = stemsUp ? firstNote.cx + 3.8 : firstNote.cx - 3.8;
+                        const lastStemX = stemsUp ? lastNote.cx + 3.8 : lastNote.cx - 3.8;
+                        
+                        const firstStemYTarget = stemsUp ? firstNote.cy - 18 : firstNote.cy + 18;
+                        const lastStemYTarget = stemsUp ? lastNote.cy - 18 : lastNote.cy + 18;
+                        
+                        svg += `<line x1="${firstStemX}" y1="${firstStemYTarget}" x2="${lastStemX}" y2="${lastStemYTarget}" stroke="${firstNote.primaryColor}" stroke-width="3.2" stroke-linecap="butt"/>`;
+                    }
+                });
+            }
+            
+            // 5. 끝 종지 이중 마디선 드로잉
+            svg += `<line x1="${width - 1}" y1="${staffStartTop}" x2="${width - 1}" y2="${staffStartTop + 4 * stepY}" stroke="#E2E8F0" stroke-width="2"/>`;
+            svg += `<line x1="${width - 4}" y1="${staffStartTop}" x2="${width - 4}" y2="${staffStartTop + 4 * stepY}" stroke="#E2E8F0" stroke-width="0.7"/>`;
+            
+            svg += `</svg>`;
+            return svg;
+        }
+
+        // --- 5. 6면 주사위 비주얼 SVG 렌더러 ---
+        function generateDiceFaceGraphics(number) {
+            const dotsCoordinates = {
+                1: [[50, 50]],
+                2: [[25, 25], [75, 75]],
+                3: [[25, 25], [50, 50], [75, 75]],
+                4: [[25, 25], [25, 75], [75, 25], [75, 75]],
+                5: [[25, 25], [25, 75], [50, 50], [75, 25], [75, 75]],
+                6: [[25, 25], [25, 50], [25, 75], [75, 25], [75, 50], [75, 75]]
+            };
+            
+            let svg = `<svg viewBox="0 0 100 100" class="w-full h-full p-1 transition-transform">`;
+            svg += `<rect x="4" y="4" width="92" height="92" rx="18" fill="#FDFCF7" stroke="#B45309" stroke-width="4.5" />`;
+            
+            const coordinatesList = dotsCoordinates[number] || [];
+            coordinatesList.forEach(([cx, cy]) => {
+                svg += `<circle cx="${cx}" cy="${cy}" r="8.5" fill="#1E293B" />`;
+            });
+            svg += `</svg>`;
+            return svg;
+        }
+
+        // --- 6. 변수 및 상태 관리 프레임워크 ---
+        let compositionArray = Array(8).fill(null); // 사용자가 구성한 8마디 타임라인
+        let activeComposerSlotIdx = 0; // 마우스로 선택한 활성 마디 위치
+        let bpm = 105;
+        
+        // 정밀 오디오 룩어헤드 스케줄러 시스템용 변수군
+        let isCurrentlyPlaying = false;
+        let playIntervalTimer = null;         // Scheduler loop interval id
+        let schedulerNextNoteTime = 0.0;      // Web Audio 시계 기준 다음 노트 재생 예정 시각
+        let playbackBarPointer = 0;           // 스케줄러가 탐색 중인 마디 인덱스 (0~7)
+        let playbackNotePointer = 0;          // 스케줄러가 탐색 중인 마디 내부 음표 인덱스
+        
+        // 사운드-비주얼 분리 구동을 위한 비주얼 하이라이트용 타깃 상태 변수
+        let visualActiveBarPointer = -1;
+        let visualActiveNotePointer = -1;
+
+        // 시작 버튼 이벤트
+        function initializeComposer() {
+            initializeAudioSystem();
+            document.getElementById('intro-modal').classList.add('opacity-0', 'pointer-events-none');
+            triggerSystemToast("신디사이저 작곡 엔진이 정상 활성화되었습니다.");
+        }
+
+        // 웹 최초 드로잉 리스너
+        window.addEventListener('DOMContentLoaded', () => {
+            renderReferenceMatrix();
+            renderTimelineDashboard();
+            updateDiceInterface(1);
+        });
+
+        // 6행 3열 참조표 채우기
+        function renderReferenceMatrix() {
+            const tableBody = document.getElementById('matrix-body');
+            tableBody.innerHTML = '';
+            
+            for (let row = 1; row <= 6; row++) {
+                const tableRow = document.createElement('tr');
+                tableRow.id = `matrix-row-block-${row}`;
+                tableRow.className = "hover:bg-amber-50/30 transition-all duration-150";
+                
+                const tdDice = document.createElement('td');
+                tdDice.className = "py-2 px-1 border-r border-slate-100 flex justify-center items-center h-20 w-16";
+                tdDice.innerHTML = `<div class="w-11 h-11 select-none">${generateDiceFaceGraphics(row)}</div>`;
+                tableRow.appendChild(tdDice);
+                
+                const targetChords = ['I', 'IV', 'V'];
+                targetChords.forEach(chord => {
+                    const tdChordCell = document.createElement('td');
+                    tdChordCell.className = "p-1.5 border-r border-slate-100 relative cursor-pointer group";
+                    tdChordCell.onclick = () => manualReferenceCellClicked(row, chord);
+                    
+                    const notesData = MASTER_MEASURES_DATA[row][chord];
+                    const staffHtml = renderMeasureSVG(notesData, -1, 160, 64);
+                    
+                    tdChordCell.innerHTML = `
+                        <div class="bg-slate-50/40 group-hover:bg-amber-100/50 group-hover:border-amber-400 border border-transparent rounded-xl p-0.5 transition-all">
+                            ${staffHtml}
+                            <button onclick="event.stopPropagation(); triggerSinglePreviewPlay(${row}, '${chord}')" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-amber-500 hover:bg-amber-600 text-white w-5.5 h-5.5 rounded-full flex items-center justify-center shadow transition-opacity duration-150 text-[10px]">
+                                ▶
+                            </button>
+                        </div>
+                    `;
+                    tableRow.appendChild(tdChordCell);
+                });
+                
+                tableBody.appendChild(tableRow);
+            }
+        }
+
+        // 하단 8마디 조립 대시보드 리렌더링
+        function renderTimelineDashboard() {
+            const grid = document.getElementById('timeline-grid');
+            grid.innerHTML = '';
+            
+            for (let idx = 0; idx < 8; idx++) {
+                const elementData = compositionArray[idx];
+                const cardOuter = document.createElement('div');
+                
+                const isSelected = idx === activeComposerSlotIdx;
+                const borderDesign = isSelected 
+                    ? "border-2 border-amber-500 ring-2 ring-amber-200/50" 
+                    : (elementData ? "border border-amber-200 hover:border-amber-300" : "border border-dashed border-slate-200 hover:border-slate-300");
+                const backgroundDesign = elementData ? "bg-white" : "bg-slate-50/40";
+                
+                cardOuter.className = `${borderDesign} ${backgroundDesign} rounded-2xl p-2.5 flex flex-col justify-between transition-all duration-300 cursor-pointer h-[145px] relative`;
+                cardOuter.onclick = () => selectActiveTargetSlot(idx);
+                
+                if (elementData) {
+                    const badgeColor = elementData.chord === 'I' ? 'bg-amber-500' : (elementData.chord === 'IV' ? 'bg-indigo-500' : 'bg-emerald-600');
+                    const isActiveGlobalPlaying = isCurrentlyPlaying && visualActiveBarPointer === idx;
+                    
+                    cardOuter.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-slate-400">마디 ${idx + 1}</span>
+                            <div class="flex items-center gap-1">
+                                <span class="bg-amber-50 px-1 py-0.5 rounded text-[8px] border border-amber-200 font-extrabold text-amber-900">눈금 ${elementData.dice}</span>
+                                <span class="${badgeColor} text-white font-extrabold text-[8px] px-1.5 py-0.5 rounded-full">${elementData.chord}</span>
+                            </div>
+                        </div>
+                        <div class="my-1.5 bg-slate-50/50 rounded-xl p-0.5 ${isActiveGlobalPlaying ? 'ring-2 ring-amber-400' : ''}">
+                            ${renderMeasureSVG(MASTER_MEASURES_DATA[elementData.dice][elementData.chord], isActiveGlobalPlaying ? visualActiveNotePointer : -1, 105, 52)}
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="event.stopPropagation(); triggerSinglePreviewPlay(${elementData.dice}, '${elementData.chord}')" class="flex-1 bg-slate-100 hover:bg-amber-500 hover:text-white text-slate-600 font-bold py-1 rounded-lg text-[9px] transition-all">
+                                미리듣기
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteBarData(${idx})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-1.5 rounded-lg text-[9px] transition-all" title="지우기">
+                                ✕
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    cardOuter.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-slate-400">마디 ${idx + 1}</span>
+                            <span class="bg-amber-50 px-1 py-0.5 rounded text-[8px] border border-amber-200 font-extrabold text-amber-900">필요: ${FLOW_CHORDS[idx]}</span>
+                        </div>
+                        <div class="my-auto flex flex-col items-center justify-center text-slate-300">
+                            <span class="text-base">➕</span>
+                            <span class="text-[8px] mt-1 font-semibold text-slate-400">마디 작곡하기</span>
+                        </div>
+                        <div class="text-[8px] text-center text-slate-400 bg-slate-100 rounded-md py-0.5">대기 중</div>
+                    `;
+                }
+                
+                grid.appendChild(cardOuter);
+            }
+            
+            updateCompletionProgressBadge();
+        }
+
+        // 편집 타겟 슬롯 전환
+        function selectActiveTargetSlot(idx) {
+            activeComposerSlotIdx = idx;
+            document.getElementById('current-slot-indicator').innerText = `${idx + 1}마디`;
+            renderTimelineDashboard();
+        }
+
+        // 주사위 그래픽 리로딩
+        function updateDiceInterface(num) {
+            const elem = document.getElementById('dice-element');
+            elem.innerHTML = generateDiceFaceGraphics(num);
+        }
+
+        // --- 7. 스마트 주사위 롤링 & 무작위 마디 작곡 로직 ---
+        function throwDice() {
+            if (!audioContext) initializeAudioSystem();
+            if (activeComposerSlotIdx >= 8) {
+                triggerSystemToast("⚠️ 모든 마디가 채워졌습니다. 초기화 후 다시 시도해 주세요.");
+                return;
+            }
+            
+            const diceContainer = document.getElementById('dice-element');
+            diceContainer.classList.add('rolling-active');
+            
+            let rotationCycles = 0;
+            const targetCycles = 12;
+            let currentTempNum = 1;
+            
+            const cycleTimer = setInterval(() => {
+                currentTempNum = Math.floor(Math.random() * 6) + 1;
+                updateDiceInterface(currentTempNum);
+                playDiceClackEffect();
+                rotationCycles++;
+                
+                if (rotationCycles >= targetCycles) {
+                    clearInterval(cycleTimer);
+                    diceContainer.classList.remove('rolling-active');
+                    
+                    const diceResult = Math.floor(Math.random() * 6) + 1;
+                    updateDiceInterface(diceResult);
+                    
+                    const targetChord = FLOW_CHORDS[activeComposerSlotIdx];
+                    placeChosenMeasure(diceResult, targetChord, true);
+                }
+            }, 70);
+        }
+
+        // 8마디 타임라인 전 구간 자동 작곡 런쳐
+        function runAutoComposition() {
+            resetFullComposition();
+            let currentComposerBarIdx = 0;
+            
+            function scheduleNextAutoComposer() {
+                if (currentComposerBarIdx >= 8) {
+                    triggerSystemToast("⭐ 8마디 화성 진행 패턴 스마트 작곡이 완전히 끝났습니다!");
+                    return;
+                }
+                
+                selectActiveTargetSlot(currentComposerBarIdx);
+                
+                const tempDice = Math.floor(Math.random() * 6) + 1;
+                const targetChord = FLOW_CHORDS[currentComposerBarIdx];
+                
+                setTimeout(() => {
+                    updateDiceInterface(tempDice);
+                    playDiceClackEffect();
+                    placeChosenMeasure(tempDice, targetChord, false);
+                    currentComposerBarIdx++;
+                    setTimeout(scheduleNextAutoComposer, 200);
+                }, 80);
+            }
+            
+            scheduleNextAutoComposer();
+        }
+
+        // 악보 참조표 수동 직접 선택 처리
+        function manualReferenceCellClicked(row, chord) {
+            if (activeComposerSlotIdx >= 8) {
+                triggerSystemToast("⚠️ 모든 마디가 채워졌습니다.");
+                return;
+            }
+            const expectedChord = FLOW_CHORDS[activeComposerSlotIdx];
+            if (chord !== expectedChord) {
+                const chordNames = { 'I': '으뜸화음 (I)', 'IV': '버금딸림화음 (IV)', 'V': '딸림화음 (V)' };
+                triggerSystemToast(`⚠️ 현재 ${activeComposerSlotIdx + 1}마디는 [${chordNames[expectedChord]}] 진행 순서 단계입니다. 테이블에서 [${expectedChord}] 열을 선택해주세요!`);
+                return;
+            }
+            placeChosenMeasure(row, chord, true);
+        }
+
+        // 타임라인 내 마디 데이터 이식 및 제어
+        function placeChosenMeasure(dice, chord, playPreview = true) {
+            compositionArray[activeComposerSlotIdx] = { dice, chord };
+            
+            triggerCellHighlightFade(dice);
+            
+            const koreanNames = { 'I': '으뜸화음 (I)', 'IV': '버금딸림화음 (IV)', 'V': '딸림화음 (V)' };
+            document.getElementById('operation-log').innerHTML = `
+                <strong class="text-amber-800">마디 ${activeComposerSlotIdx + 1} 생성:</strong> 
+                주사위 <span class="bg-amber-100 text-amber-900 font-extrabold px-1.5 py-0.5 rounded text-[10px]">${dice}</span> ➔ 순서 규칙 적용 [ <strong class="text-amber-950 font-bold">${koreanNames[chord]}</strong> ] 배치 완료.
+            `;
+            
+            if (playPreview) {
+                triggerSinglePreviewPlay(dice, chord);
+            } else {
+                playDiceClackEffect();
+            }
+            
+            let nextEmptyPointer = (activeComposerSlotIdx + 1) % 8;
+            selectActiveTargetSlot(nextEmptyPointer);
+            renderTimelineDashboard();
+        }
+
+        // 특정 마디 부분 소거
+        function deleteBarData(idx) {
+            compositionArray[idx] = null;
+            renderTimelineDashboard();
+            triggerSystemToast(`마디 ${idx + 1}의 악보를 완전히 삭제했습니다.`);
+        }
+
+        // --- 8. 오디오 통합 하드웨어 스케줄러 알고리즘 (Tale of Two Clocks) ---
+        function triggerSinglePreviewPlay(dice, chord) {
+            stopAllActiveAudio();
+            if (!audioContext) initializeAudioSystem();
+            if (audioContext.state === 'suspended') audioContext.resume();
+
+            const notesList = MASTER_MEASURES_DATA[dice][chord];
+            
+            let currentSchedTime = audioContext.currentTime + 0.05;
+            const unitOneBeatSec = 60 / bpm;
+            
+            notesList.forEach((note) => {
+                const noteRealDurationSec = note.dur * unitOneBeatSec;
+                if (note.pitch !== 'REST') {
+                    const hz = PITCH_HZ[note.pitch];
+                    playNoteSynthesizer(hz, currentSchedTime, noteRealDurationSec);
+                }
+                currentSchedTime += noteRealDurationSec;
+            });
+        }
+
+        // 8마디 전체 재생 / 토글 처리
+        function toggleFullSongPlay() {
+            if (isCurrentlyPlaying) {
+                pauseSongPlay();
+            } else {
+                startFullSongPlay();
+            }
+        }
+
+        // 연속 완곡 연주 개시 (룩어헤드 스케줄러 부팅)
+        function startFullSongPlay() {
+            stopSongPlay();
+            stopAllActiveAudio();
+            
+            if (!audioContext) initializeAudioSystem();
+            if (audioContext.state === 'suspended') audioContext.resume();
+
+            const compositionBarSize = compositionArray.filter(x => x !== null).length;
+            if (compositionBarSize === 0) {
+                triggerSystemToast("⚠️ 작곡 정보가 비어있습니다. 먼저 주사위를 굴리세요!");
+                return;
+            }
+
+            isCurrentlyPlaying = true;
+            
+            playbackBarPointer = 0;
+            playbackNotePointer = 0;
+            
+            visualActiveBarPointer = 0;
+            visualActiveNotePointer = 0;
+            
+            schedulerNextNoteTime = audioContext.currentTime + 0.1;
+            
+            document.getElementById('play-btn-symbol').innerText = "⏸";
+            document.getElementById('play-btn-text').innerText = "연주 일시정지";
+            
+            triggerSystemToast("🔊 8마디 연속 완곡 연주를 순차적으로 개시합니다.");
+            
+            schedulerLoop();
+            playIntervalTimer = setInterval(schedulerLoop, 25);
+        }
+
+        // [핵심] 오디오 예약 스케줄러 엔진 (Lookahead Scheduler)
+        function schedulerLoop() {
+            if (!isCurrentlyPlaying) return;
+            
+            const LOOKAHEAD_SEC = 0.20; 
+            
+            while (isCurrentlyPlaying && playbackBarPointer < 8 && schedulerNextNoteTime < audioContext.currentTime + LOOKAHEAD_SEC) {
+                scheduleNextNote(playbackBarPointer, playbackNotePointer, schedulerNextNoteTime);
+                advancePlaybackPointer();
+            }
+        }
+
+        // 다음 음표를 정확한 타이밍 값에 예약 및 시각 요소 바인딩
+        function scheduleNextNote(barIdx, noteIdx, playTime) {
+            const currentBarElement = compositionArray[barIdx];
+            if (!currentBarElement) return;
+            
+            const notes = MASTER_MEASURES_DATA[currentBarElement.dice][currentBarElement.chord];
+            const note = notes[noteIdx];
+            if (!note) return;
+            
+            const unitOneBeatSec = 60 / bpm;
+            const durationSec = note.dur * unitOneBeatSec;
+            
+            if (note.pitch !== 'REST') {
+                const hz = PITCH_HZ[note.pitch];
+                playNoteSynthesizer(hz, playTime, durationSec);
+            }
+            
+            const delayMs = (playTime - audioContext.currentTime) * 1000;
+            setTimeout(() => {
+                if (!isCurrentlyPlaying) return;
+                renderTimelineDashboardWithVisualHighlight(barIdx, noteIdx);
+            }, Math.max(0, delayMs));
+        }
+
+        // 스케줄러 내부 가상 포인터 한 단계 전진
+        function advancePlaybackPointer() {
+            if (playbackBarPointer >= 8) return;
+
+            const currentBarElement = compositionArray[playbackBarPointer];
+            let notesInBar = [];
+            
+            if (currentBarElement) {
+                notesInBar = MASTER_MEASURES_DATA[currentBarElement.dice][currentBarElement.chord];
+            } else {
+                notesInBar = [{ pitch: 'REST', dur: 4.0 }];
+            }
+            
+            const unitOneBeatSec = 60 / bpm;
+            const noteDurationSec = notesInBar[playbackNotePointer].dur * unitOneBeatSec;
+            
+            schedulerNextNoteTime += noteDurationSec;
+            
+            playbackNotePointer++;
+            if (playbackNotePointer >= notesInBar.length) {
+                playbackNotePointer = 0;
+                playbackBarPointer++;
+                
+                if (playbackBarPointer >= 8) {
+                    const stopDelaySec = schedulerNextNoteTime - audioContext.currentTime;
+                    setTimeout(() => {
+                        if (isCurrentlyPlaying) {
+                            stopSongPlay();
+                            triggerSystemToast("✨ 완곡 연주가 마법처럼 마무리되었습니다.");
+                        }
+                    }, Math.max(0, stopDelaySec * 1000));
+                }
+            }
+        }
+
+        // 비주얼 음표 타임라인 실시간 하이라이트 트리거
+        function renderTimelineDashboardWithVisualHighlight(barIdx, noteIdx) {
+            visualActiveBarPointer = barIdx;
+            visualActiveNotePointer = noteIdx;
+            renderTimelineDashboard();
+        }
+
+        // 일시 정지 (setInterval 해제 시 clearInterval 사용으로 버그 완전 해결)
+        function pauseSongPlay() {
+            isCurrentlyPlaying = false;
+            if (playIntervalTimer) {
+                clearInterval(playIntervalTimer);
+                playIntervalTimer = null;
+            }
+            document.getElementById('play-btn-symbol').innerText = "▶";
+            document.getElementById('play-btn-text').innerText = "전체 곡 재생";
+            
+            visualActiveBarPointer = -1;
+            visualActiveNotePointer = -1;
+            renderTimelineDashboard();
+            
+            triggerSystemToast("연주를 일시정지 처리했습니다.");
+        }
+
+        // 완전 중단 및 오디오 하드웨어 즉각 침묵
+        function stopSongPlay() {
+            isCurrentlyPlaying = false;
+            if (playIntervalTimer) {
+                clearInterval(playIntervalTimer);
+                playIntervalTimer = null;
+            }
+            playbackBarPointer = 0;
+            playbackNotePointer = 0;
+            
+            visualActiveBarPointer = -1;
+            visualActiveNotePointer = -1;
+            
+            stopAllActiveAudio();
+            document.getElementById('play-btn-symbol').innerText = "▶";
+            document.getElementById('play-btn-text').innerText = "전체 곡 재생";
+            renderTimelineDashboard();
+        }
+
+        function resetFullComposition() {
+            stopSongPlay();
+            compositionArray = Array(8).fill(null);
+            activeComposerSlotIdx = 0;
+            document.getElementById('operation-log').innerText = "주사위를 굴리면 정해진 화음 순서(image_88759b.png 진행)대로 작곡을 조립합니다!";
+            renderTimelineDashboard();
+            selectActiveTargetSlot(0);
+            triggerSystemToast("모든 악보 데이터와 재생 포인터가 초기화되었습니다.");
+        }
+
+        // 참조 격자표 플래시 피드백
+        function triggerCellHighlightFade(row) {
+            for (let r = 1; r <= 6; r++) {
+                document.getElementById(`matrix-row-block-${r}`).classList.remove('bg-amber-100/50');
+            }
+            const targetRow = document.getElementById(`matrix-row-block-${row}`);
+            if (targetRow) {
+                targetRow.classList.add('bg-amber-100/50');
+                setTimeout(() => {
+                    targetRow.classList.remove('bg-amber-100/50');
+                }, 1800);
+            }
+        }
+
+        // 마디 완료 숫자 배지 업데이트
+        function updateCompletionProgressBadge() {
+            const calculatedSum = compositionArray.filter(item => item !== null).length;
+            document.getElementById('completion-badge').innerText = `${calculatedSum} / 8 마디`;
+        }
+
+        // BPM 슬라이더 핸들러
+        function handleBpmChange(val) {
+            bpm = parseInt(val);
+            document.getElementById('bpm-indicator').innerText = `${bpm} BPM`;
+        }
+
+        // 토스트 알림 디스플레이
+        function triggerSystemToast(msg) {
+            const toastElement = document.getElementById('app-toast');
+            toastElement.innerText = msg;
+            toastElement.classList.remove('opacity-0');
+            toastElement.classList.add('opacity-100');
+            
+            setTimeout(() => {
+                toastElement.classList.remove('opacity-100');
+                toastElement.classList.add('opacity-0');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "tool": "Built-in image_gen",
+  "outputs": {
+    "title": "C:/Users/user/myproject/dicemusic/assets/song-title.png",
+    "lyrics": "C:/Users/user/myproject/dicemusic/assets/lyric-writing.png"
+  },
+  "prompts": {
+    "title": "Use case: logo-brand\nAsset type: transparent Korean title lettering for an existing illustrated music composition app.\nPrimary request: Draw ONLY the exact Korean title \"주사위로 노래 만들기\" in two balanced lines: first line \"주사위로\", second line \"노래 만들기\". All Hangul must be exact, complete and very legible. No other words. Original elegant musical handwritten Korean calligraphy, flowing and rhythmic brush strokes, expressive rounded character shapes, subtle nib variation, inviting and refined. A few very small delicate musical-note flourishes adjacent to lettering, visually clearly separate from Hangul and never replacing strokes. Deep forest teal ink #254641, a very subtle muted coral curved underline beneath second line. Fine hand-drawn editorial line quality matching pastel ink landscape and ivory paper UI. Landscape 3:2 composition, lettering large centered with modest clear margins. No dice, no badge, no frame, no paper rectangle, no gradients, no shadows, no logos, no watermark. True transparent background around all ink strokes, production lettering cutout.",
+    "lyrics": "Use case: stylized-concept\nAsset type: small transparent icon illustration replacing a star next to the lyric-writing section of an existing pastel ink music app.\nPrimary request: A charming miniature scene of writing lyrics: a pale ivory sheet of music manuscript paper, two delicately drawn notes on a short staff, a few simple handwritten lyric stroke lines directly underneath the notes, and a coral-colored wooden pencil actively touching one of those lyric lines. The pencil lies diagonally from top-right toward the sheet center. Small ink gesture curve suggests the act of writing. Refined dark forest teal thin outlines #254641, muted sage and dusty coral accents, gentle natural paper grain, hand-drawn editorial illustration matching a dreamy illustrated musical landscape. Keep simple readable silhouette at 80 pixels. Square composition. No actual text, no lettering, no stars, no watermark, no frame, no badge, no surrounding square background, no photorealistic hand. True transparent background cutout."
+  }
+}

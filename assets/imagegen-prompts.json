@@ -1,0 +1,12 @@
+{
+  "tool": "Built-in image_gen",
+  "reference": "https://2019.makemepulse.com/",
+  "prompts": {
+    "hero": "Use case: stylized-concept\nAsset type: panoramic illustration for a Korean interactive dice music composition web app, right-hand hero artwork.\nPrimary request: An original whimsical landscape about chance and melody. Delicate dark ink contours, soft flat pastel colors, tiny hand-drawn hatching, visible warm ivory paper grain. A meandering ivory ribbon like a musical staff flows through mint-green rolling hills, dusty teal tropical foliage, pale coral monolithic rocks, distant powder-blue mountains. Three small ivory dice with dark pips float in the air like musical notes; a warm pale peach sun overhead. Poetic, playful, quiet adventurous atmosphere reminiscent of the line-drawn pastel landscape language on Nomadic Tribe 2019 makemepulse, original composition. Landscape ratio 3:2. Lower right abundant foliage, airy sky top, full-bleed illustration with no frame. Refined editorial comic illustration, fine lines, muted colors, no photorealism. No text, no letters, no logos, no watermark. Intended to sit beside crisp live UI.",
+    "surfaces": "Use case: stylized-concept\nAsset type: ONE seamless UI material texture atlas used as background skin for all interactive buttons, controls, cards and modal surfaces in a music app.\nPrimary request: A square 2 by 2 grid of FOUR equally sized edge-to-edge solid color paper texture swatches with exact straight boundaries at the horizontal and vertical center. Top-left warm ivory #f4f0e5, top-right light sage mint #c9ddcc, bottom-left dusty pale coral peach #efc4af, bottom-right dark ink teal #254641. Each quadrant must fill its entire quarter with a subtle fine printed paper grain, tiny fibers and gentle speckle, consistent flat lighting with absolutely no gradients, no shadows, no objects, no border, no labels, no typography. Flat artwork texture scan, tasteful editorial material. Each quadrant fully seamless internally; preserve colors strongly. This is a single production material atlas, not a UI mockup. No text or symbols."
+  },
+  "outputs": {
+    "hero": "C:/Users/user/myproject/dicemusic/assets/melody-landscape.png",
+    "surfaces": "C:/Users/user/myproject/dicemusic/assets/paper-atlas.png"
+  }
+}
